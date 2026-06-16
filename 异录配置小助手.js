@@ -2054,7 +2054,7 @@ p.document.addEventListener('mouseup', onPanelEnd);
 p.document.addEventListener('touchend', onPanelEnd);
 
 // 异录v1.4 世界书「我是S级求打压」标准条目数
-const YL_WB_EXPECTED = 211;
+const YL_WB_EXPECTED = 229;
 async function checkWorldbookCount() {
   try {
     const wbName = await api_resolveWorldbookName();
