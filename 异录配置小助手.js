@@ -186,7 +186,7 @@ async function api_updateScriptTrees(modifier) {
   );
 }
 
-// --- CSS（注入到父页面，缄默之秋配色） ---
+// --- CSS（注入到父页面） ---
 const CSS = p.document.createElement('style');
 CSS.textContent = `
 	  #yl-bubble {
@@ -1926,7 +1926,7 @@ function refreshModelSourceVisibility() {
   mvuCustomApi.style.display = (isExtra && isCustom) ? '' : 'none';
 }
 
-// 缄默之秋无模式切换，MVU section 始终可见
+// 无模式切换，MVU section 始终可见
 function refreshMvuSectionVisibility() {
   mvuSection.style.display = '';
 }
