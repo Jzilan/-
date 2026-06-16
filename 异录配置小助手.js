@@ -1,6 +1,6 @@
 // ═══════════════ 异录小助手 ═══════════════
 // 酒馆助手中粘贴以下一行即可：
-//   import 'https://testingcf.jsdelivr.net/gh/NLKASHEI/233456@v1.1.2/缄默之秋配置小助手.min.js'
+//   import 'https://testingcf.jsdelivr.net/gh/NLKASHEI/233456@v1.1.2/异录配置小助手.min.js'
 // ═══════════════════════════════════════════════════════════
 
 const YL_VERSION = '1.0.0';
@@ -16,7 +16,6 @@ if (!p._ylLoaded) { p._ylLoaded = true;
   for (const id of old) { const el = p.document.getElementById(id); if (el) el.remove(); }
   if (typeof p._ylCleanup === 'function') try { p._ylCleanup(); } catch(e) {}
   delete p._ylCleanup;
-  delete p._ylLastResult;
 }
 
 // ═══════════════ 核心：在父页面上下文执行代码 ═══════════════
@@ -186,7 +185,7 @@ async function api_updateScriptTrees(modifier) {
   );
 }
 
-// --- CSS（注入到父页面） ---
+// --- CSS（注入到父页面，异录配色） ---
 const CSS = p.document.createElement('style');
 CSS.textContent = `
 	  #yl-bubble {
@@ -1926,7 +1925,7 @@ function refreshModelSourceVisibility() {
   mvuCustomApi.style.display = (isExtra && isCustom) ? '' : 'none';
 }
 
-// 无模式切换，MVU section 始终可见
+// 异录无模式切换，MVU section 始终可见
 function refreshMvuSectionVisibility() {
   mvuSection.style.display = '';
 }
@@ -1951,7 +1950,7 @@ bubble.addEventListener('click', () => {
     panel.style.left = left + 'px';
     panel.style.top = top + 'px';
     panel.style.display = 'flex';
-    _ylPopulateWbSelect(); checkConfig(); refreshMvuSectionVisibility(); refreshMvuConfigStatus(); autoSwitch(); checkWorldbookCount(); loadBeauty().then(renderBeauty); loadWorldbookMgr().then(renderWb);
+    _ylPopulateWbSelect(); checkConfig(); refreshMvuSectionVisibility(); refreshMvuConfigStatus(); checkWorldbookCount(); loadBeauty().then(renderBeauty); loadWorldbookMgr().then(renderWb);
   }
 });
 
@@ -1989,7 +1988,7 @@ p.document.addEventListener('touchstart', (e) => {
 });
 
 // 面板获得鼠标时自动刷新（用户可能中途手动改了设置）
-panel.addEventListener('mouseenter', () => { _ylPopulateWbSelect(); checkConfig(); refreshMvuConfigStatus(); refreshUI(); updateBackendCode(); checkWorldbookCount(); loadBeauty().then(renderBeauty); loadWorldbookMgr().then(renderWb); });
+panel.addEventListener('mouseenter', () => { _ylPopulateWbSelect(); checkConfig(); refreshMvuConfigStatus(); updateBackendCode(); checkWorldbookCount(); loadBeauty().then(renderBeauty); loadWorldbookMgr().then(renderWb); });
 
 // --- 工具：获取触摸/鼠标坐标 ---
 function getXY(e) {
@@ -2054,382 +2053,6 @@ p.document.addEventListener('touchmove', onPanelMove, { passive: false });
 p.document.addEventListener('mouseup', onPanelEnd);
 p.document.addEventListener('touchend', onPanelEnd);
 
-// ═══════════════ 世界书自动切换 ═══════════════
-function readStatData() {
-  if (typeof p.Mvu === 'undefined') return null;
-
-  for (let i = -1; i >= -30; i--) {
-    try {
-      const d = p.Mvu.getMvuData({ type: 'message', message_id: i });
-      if (d?.stat_data?.衍生状态?.nationality && d?.stat_data?.世界阶段) return d.stat_data;
-    } catch (e) {}
-  }
-
-  let best = null;
-  for (let i = 0; i < 200; i++) {
-    try {
-      const d = p.Mvu.getMvuData({ type: 'message', message_id: i });
-      if (d?.stat_data?.衍生状态?.nationality && d?.stat_data?.世界阶段) best = d.stat_data;
-    } catch (e) {}
-  }
-  return best;
-}
-
-function buildEnableSet(sd) {
-  const enable = new Set();
-  const nat           = sd?.衍生状态?.nationality ?? null;
-  const phase         = sd?.世界阶段 ?? '秩序期';
-  const infMode       = sd?.感染者行为模式 ?? '狂病型';
-  const npcMode       = sd?.NPC行为模式 ?? '正常型';
-
-  if (phase === '秩序期') {
-    for (const e of [
-      '世界观-各国政府情况',
-      '大爆发前/大爆发前夕', '大爆发前/规则-异常事件应对', '大爆发前/规则-约束',
-      '大爆发前/规则-物资获取', '大爆发前/规则-医疗与健康',
-      '大爆发前/规则-社会秩序', '大爆发前/规则-冲突与应对',
-    ]) enable.add(e);
-  } else if (phase === '爆发期' || phase === '末世期') {
-    for (const e of [
-      '世界观-官方安全区', '世界观-半感染者', '世界观-ZCOM生化特种部队(彩蛋)',
-      '世界观-流浪者', '世界观-无序者', '杂项-无序者行为强化',
-      '杂项-幸存者据点动态生成', '机制-建造庇护所', '物品-灭杀疫苗', '物品-药物',
-      '机制-COVID-30感染', '机制-找事儿', '机制-制造', '机制-完整度',
-      '机制-战斗', '机制-恐慌', '机制-伤病与医疗',
-      '杂项-搜刮结果动态生成', '杂项-幸存者NPC关系推进',
-      '世界观-宇航员们（彩蛋）', '世界观-外星人(彩蛋)',
-      '机制-搜刮物资', '机制-半感染者生存机制', '机制-沉浸式体验', '机制-种田！我要种田！',
-    ]) enable.add(e);
-    if (phase === '末世期') {
-      for (const e of [
-        '世界观-末世期', '世界观-COVID-30变体感染者',
-        '机制-官方安全区行为', '机制-痛啊好痛啊！', '机制-死亡',
-      ]) enable.add(e);
-    }
-  } else {
-    for (const e of [
-      '大爆发前/大爆发前夕', '大爆发前/规则-异常事件应对', '大爆发前/规则-物资获取',
-      '大爆发前/规则-医疗与健康', '大爆发前/规则-社会秩序', '大爆发前/规则-冲突与应对',
-    ]) enable.add(e);
-  }
-
-  if (infMode === '狂病型') {
-    for (const e of ['世界观-COVID-30感染者行为总纲', '[mvu_plot]杂项-合理性审查', '杂项-场景强化(可选)']) enable.add(e);
-    if (phase === '爆发期') enable.add('世界观-爆发期');
-    if (phase === '爆发期' || phase === '末世期') enable.add('机制-动态威胁与安逸惩罚');
-    if (phase === '末世期') enable.add('杂项-感染者遭遇动态生成');
-  } else if (infMode === '普通型') {
-    for (const e of ['普通丧尸COVID-30感染者', '[mvu_plot]普通审查', '普通场景强化(可选)']) enable.add(e);
-    if (phase === '爆发期') enable.add('普通爆发期');
-    if (phase === '爆发期' || phase === '末世期') {
-      for (const e of ['普通感染者多样性', '普通-机制-丧尸尸潮', '普通的动态威胁与安逸惩罚']) enable.add(e);
-    }
-    if (phase === '末世期') enable.add('普通感染者遭遇');
-  }
-
-  if (npcMode === '正常型') {
-    enable.add('杂项-NPC动态生成');
-    enable.add('杂项-末世社交互动法则');
-  } else if (npcMode === '全员恶人型') {
-    enable.add('恶意的NPC生成');
-    enable.add('恶意社交法则');
-  }
-
-  const summaryMap = {
-    '华国':'华国已定义NPC摘要', '美利坚国':'美利坚国已定义NPC摘要',
-    '日本国':'日本国已定义NPC摘要', '大毛国':'大毛国已定义NPC摘要',
-    '法国':'法国已定义NPC摘要', '巴西国':'巴西已定义NPC摘要', '北非':'北非已定义NPC摘要',
-  };
-  if (summaryMap[nat]) enable.add(summaryMap[nat]);
-
-  if (nat === '华国' && (phase === '爆发期' || phase === '末世期')) {
-    enable.add('世界观-无序者-华国血煞团体'); enable.add('世界观-无序者-华国月影团体');
-    enable.add('华国-华国人民解放军行为');
-  }
-  if (nat === '日本国') {
-    enable.add('世界观-日本国暗线');
-    if (phase === '爆发期' || phase === '末世期') {
-      for (const e of [
-        '世界观-无序者-日本国狩人之牙', '世界观-无序者-日本国绝望残党',
-        '世界观-幸存者-樱丘女子高中', '世界观-幸存者-藤美学园',
-        '世界观-幸存者-弗兰秀秀', '世界观-安全区-警视厅',
-      ]) enable.add(e);
-    }
-  }
-  if (nat === '美利坚国') {
-    if (phase === '秩序期') {
-      enable.add('世界观-美利坚爆发前');
-    } else if (phase === '爆发期' || phase === '末世期') {
-      for (const e of [
-        '世界观-美利坚爆发后势力格局', '世界观-美利坚特色流浪者行为',
-        '世界观-美利坚特色无序者总体设定', '世界观-安布雷拉(彩蛋)',
-        '世界观-无序者-美利坚国铁冠帮', '世界观-无序者-美利坚国净世神殿',
-      ]) enable.add(e);
-      if (phase === '末世期') enable.add('世界观-安布雷拉生物');
-    }
-  }
-  if (nat === '大毛国') {
-    enable.add('世界观-大毛生活图景');
-    if (phase === '秩序期') {
-      enable.add('世界观-大毛国爆发前'); enable.add('世界观-势力爆发前');
-    } else if (phase === '爆发期' || phase === '末世期') {
-      for (const e of [
-        '世界观-统一党爆发后', '世界观-新布尔什维克党爆发后', '世界观-工人钢铁会爆发后',
-        '世界观-黑雪势力', '世界观-零度教势力',
-        '世界观-电动实验BMPT(彩蛋)', '世界观-空中飞艇',
-      ]) enable.add(e);
-      if (phase === '末世期') enable.add('世界观-核爆区域');
-    }
-  }
-  if (nat === '法国') {
-    if (phase === '秩序期') {
-      enable.add('世界观-法国爆发前');
-    } else if (phase === '爆发期' || phase === '末世期') {
-      for (const e of [
-        '世界观-爆发期的法国', '世界观-白鹿堡', '世界观-鸢尾堡',
-        '世界观-铁王冠领', '世界观-圣公教会', '世界观-混乱骑士团',
-        '世界观-自由联合民', '世界观-戴高乐号流亡政府',
-      ]) enable.add(e);
-      if (phase === '末世期') enable.add('世界观-末世期的法国');
-    }
-  }
-  if (nat === '巴西国') {
-    enable.add(phase === '秩序期' ? '世界观-秩序期的巴西' : '世界观-爆发后的巴西');
-  }
-  if (nat === '北非') {
-    enable.add(phase === '秩序期' ? '世界观-秩序期的北非' : '世界观-爆发后的北非');
-  }
-
-  return enable;
-}
-
-const MANAGED_ENTRIES = new Set([
-  '世界观-各国政府情况',
-  '大爆发前/大爆发前夕','大爆发前/规则-异常事件应对','大爆发前/规则-约束',
-  '大爆发前/规则-物资获取','大爆发前/规则-医疗与健康',
-  '大爆发前/规则-社会秩序','大爆发前/规则-冲突与应对',
-  '世界观-官方安全区','世界观-半感染者','世界观-ZCOM生化特种部队(彩蛋)',
-  '世界观-流浪者','世界观-无序者','杂项-无序者行为强化',
-  '杂项-幸存者据点动态生成','机制-建造庇护所','物品-灭杀疫苗','物品-药物',
-  '机制-COVID-30感染','机制-找事儿','机制-制造','机制-完整度',
-  '机制-战斗','机制-恐慌','机制-伤病与医疗',
-  '杂项-搜刮结果动态生成','杂项-幸存者NPC关系推进',
-  '世界观-宇航员们（彩蛋）','世界观-外星人(彩蛋)',
-  '机制-搜刮物资','机制-半感染者生存机制','机制-沉浸式体验','机制-种田！我要种田！',
-  '世界观-末世期','世界观-COVID-30变体感染者',
-  '机制-官方安全区行为','机制-痛啊好痛啊！','机制-死亡',
-  '世界观-COVID-30感染者行为总纲','[mvu_plot]杂项-合理性审查','杂项-场景强化(可选)',
-  '世界观-爆发期','机制-动态威胁与安逸惩罚','杂项-感染者遭遇动态生成',
-  '普通丧尸COVID-30感染者','[mvu_plot]普通审查','普通场景强化(可选)',
-  '普通爆发期','普通感染者多样性','普通-机制-丧尸尸潮',
-  '普通的动态威胁与安逸惩罚','普通感染者遭遇',
-  '杂项-NPC动态生成','杂项-末世社交互动法则','恶意的NPC生成','恶意社交法则',
-  '华国已定义NPC摘要','美利坚国已定义NPC摘要','日本国已定义NPC摘要',
-  '大毛国已定义NPC摘要','法国已定义NPC摘要','巴西已定义NPC摘要','北非已定义NPC摘要',
-  '世界观-无序者-华国血煞团体','世界观-无序者-华国月影团体',
-  '华国-华国人民解放军行为',
-  '世界观-日本国暗线','世界观-无序者-日本国狩人之牙','世界观-无序者-日本国绝望残党',
-  '世界观-幸存者-樱丘女子高中','世界观-幸存者-藤美学园','世界观-幸存者-弗兰秀秀',
-  '世界观-安全区-警视厅','世界观-美利坚爆发前','世界观-美利坚爆发后势力格局',
-  '世界观-美利坚特色流浪者行为','世界观-美利坚特色无序者总体设定',
-  '世界观-安布雷拉(彩蛋)','世界观-无序者-美利坚国铁冠帮',
-  '世界观-无序者-美利坚国净世神殿','世界观-安布雷拉生物',
-  '世界观-大毛生活图景','世界观-大毛国爆发前','世界观-势力爆发前',
-  '世界观-统一党爆发后','世界观-新布尔什维克党爆发后','世界观-工人钢铁会爆发后',
-  '世界观-黑雪势力','世界观-零度教势力','世界观-核爆区域',
-  '世界观-电动实验BMPT(彩蛋)','世界观-空中飞艇',
-  '世界观-法国爆发前','世界观-爆发期的法国','世界观-末世期的法国',
-  '世界观-白鹿堡','世界观-鸢尾堡','世界观-铁王冠领','世界观-圣公教会',
-  '世界观-混乱骑士团','世界观-自由联合民','世界观-戴高乐号流亡政府',
-  '世界观-秩序期的巴西','世界观-爆发后的巴西',
-  '世界观-秩序期的北非','世界观-爆发后的北非',
-]);
-
-async function applyToWorldbook(enableSet, wbName, nat) {
-  const enableSetJSON    = JSON.stringify([...enableSet]);
-  const managedSetJSON   = JSON.stringify([...MANAGED_ENTRIES]);
-  const natStr           = nat ? JSON.stringify(nat) : 'null';
-
-  return runInParent(`(async () => {
-    var enableSet       = new Set(${enableSetJSON});
-    var MANAGED_ENTRIES = new Set(${managedSetJSON});
-    var nat             = ${natStr};
-
-    if (typeof TavernHelper === 'undefined')
-      throw new Error('TavernHelper is not defined — 请确认 TavernHelper 扩展已安装并启用');
-
-    var wbName = ${JSON.stringify(wbName)};
-    var entries;
-    try { entries = await TavernHelper.getWorldbook(wbName); } catch(e) {
-      throw new Error('无法获取世界书 "' + wbName + '": ' + (e.message || String(e)));
-    }
-    if (!Array.isArray(entries))
-      throw new Error('世界书 "' + wbName + '" 返回数据格式异常');
-
-    var totalChanged = 0;
-    var log = [];
-    var changed = false;
-    var enabled_list = [], disabled_list = [];
-
-    for (var i = 0; i < entries.length; i++) {
-      var e = entries[i];
-      var entryName = e.name || '';
-      if (!MANAGED_ENTRIES.has(entryName)) continue;
-
-      var should = enableSet.has(entryName);
-      var dirty  = false;
-
-      if (e.enabled !== should) { e.enabled = should; dirty = true; }
-
-      if (dirty) {
-        changed = true;
-        (should ? enabled_list : disabled_list).push(entryName);
-      }
-    }
-
-    // 基础信息自动开关：匹配所有 */角色/*/基础信息，当前国籍开、其余关
-    if (nat) {
-      var prefix = nat + '/角色/';
-      for (var j = 0; j < entries.length; j++) {
-        var entry = entries[j];
-        var name = entry.name || '';
-        var idx = name.indexOf('/角色/');
-        if (idx === -1) continue;
-        if (!name.endsWith('/基础信息')) continue;
-        var shouldEnable = name.startsWith(prefix);
-        if (entry.enabled !== shouldEnable) {
-          entry.enabled = shouldEnable;
-          changed = true;
-          (shouldEnable ? enabled_list : disabled_list).push(name);
-        }
-      }
-    }
-
-    if (changed) {
-      try { await TavernHelper.replaceWorldbook(wbName, entries); } catch(e) {
-        throw new Error('无法保存世界书 "' + wbName + '": ' + (e.message || String(e)));
-      }
-      totalChanged += enabled_list.length + disabled_list.length;
-      log.push({ wbName: wbName, enabled: enabled_list, disabled: disabled_list });
-    }
-
-    return { totalChanged: totalChanged, log: log, wbNames: [wbName] };
-  })()`);
-}
-
-let _runningPromise = null;
-let _pendingSwitch  = false;
-let _debounceTimer  = null;
-
-async function autoSwitch() {
-  if (_runningPromise) {
-    _pendingSwitch = true;
-    return _runningPromise;
-  }
-
-  _runningPromise = (async () => {
-    bubble && bubble.classList.add('running');
-    try {
-      if (typeof p.Mvu === 'undefined') throw new Error('Mvu 不可用');
-
-      const sd = readStatData();
-      if (!sd) {
-        p._ylLastResult = { time: Date.now(), ok: true, stat: {}, want: [], totalChanged: 0, log: [] };
-        return;
-      }
-
-      const enableSet = buildEnableSet(sd);
-      const wbName = await api_resolveWorldbookName();
-      const result = await applyToWorldbook(enableSet, wbName, sd.衍生状态?.nationality);
-      const logSummary = result.log.map(l =>
-        l.wbName + ' ▲' + l.enabled.length + ' ▼' + l.disabled.length
-      ).join(' | ');
-      p._ylLastResult = {
-        time: Date.now(), ok: true,
-        stat: {
-          phase:  sd.世界阶段,
-          nat:    sd.衍生状态?.nationality,
-          感染者: sd.感染者行为模式,
-          NPC模式:sd.NPC行为模式,
-        },
-        want: [...enableSet],
-        totalChanged: result.totalChanged,
-        log: result.log,
-      };
-    } catch (err) {
-      console.error('[YL] 执行失败:', err);
-      p._ylLastResult = { time: Date.now(), ok: false, error: err.message };
-    }
-    p.document.dispatchEvent(new CustomEvent('yl-done', { detail: p._ylLastResult }));
-  })();
-
-  try { await _runningPromise; } finally {
-    _runningPromise = null;
-    bubble && bubble.classList.remove('running');
-
-    if (_pendingSwitch) {
-      _pendingSwitch = false;
-      setTimeout(() => autoSwitch(), 100);
-    }
-  }
-}
-
-function onCriticalEvent() {
-  clearTimeout(_debounceTimer);
-  return autoSwitch();
-}
-
-function onSecondaryEvent() {
-  clearTimeout(_debounceTimer);
-  _debounceTimer = setTimeout(autoSwitch, 200);
-}
-
-const CRITICAL_EVENTS = [
-  'message_sent',               'MESSAGE_SENT',
-  'generate_before_combine_prompts', 'GENERATE_BEFORE_COMBINE_PROMPTS',
-];
-
-const SECONDARY_EVENTS = [
-  'character_message_rendered', 'CHARACTER_MESSAGE_RENDERED',
-  'message_received',           'MESSAGE_RECEIVED',
-  'user_message_rendered',      'USER_MESSAGE_RENDERED',
-];
-
-const ALL_EVENTS = [...CRITICAL_EVENTS, ...SECONDARY_EVENTS];
-
-if (typeof eventOn === 'function') {
-  for (const evt of CRITICAL_EVENTS) {
-    try { eventOn(evt, onCriticalEvent); } catch(e) {}
-  }
-  for (const evt of SECONDARY_EVENTS) {
-    try { eventOn(evt, onSecondaryEvent); } catch(e) {}
-  }
-  p._ylCleanup = function() {
-    if (typeof eventOff === 'function') {
-      for (const evt of ALL_EVENTS) { try { eventOff(evt, onCriticalEvent); } catch(e) {} }
-      for (const evt of ALL_EVENTS) { try { eventOff(evt, onSecondaryEvent); } catch(e) {} }
-    }
-  };
-} else {
-}
-
-function refreshUI() {
-  const r = p._ylLastResult;
-  if (!r) return;
-  if (r.ok) {
-    statusDot.className = 'yl-dot ok';
-    statTags.innerHTML = [
-      r.stat.phase   && `<span class="yl-tag">${r.stat.phase}</span>`,
-      r.stat.nat     && `<span class="yl-tag">${r.stat.nat}</span>`,
-      r.stat.感染者  && `<span class="yl-tag">${r.stat.感染者}</span>`,
-      r.stat.NPC模式 && `<span class="yl-tag">${r.stat.NPC模式}</span>`,
-    ].filter(Boolean).join('');
-  } else {
-    statusDot.className = 'yl-dot err';
-    statTags.innerHTML = `<span class="yl-tag err">ERROR</span>`;
-  }
-}
-
 // 异录v1.4 世界书「我是S级求打压」标准条目数
 const YL_WB_EXPECTED = 211;
 async function checkWorldbookCount() {
@@ -2453,7 +2076,7 @@ async function checkWorldbookCount() {
 }
 
 // --- 事件绑定 ---
-refreshBtn.addEventListener('click', async () => { checkConfig(); refreshMvuConfigStatus(); autoSwitch(); await loadBeauty(); renderBeauty(); await loadWorldbookMgr(); renderWb(); showToast('已刷新'); });
+refreshBtn.addEventListener('click', async () => { checkConfig(); refreshMvuConfigStatus(); await loadBeauty(); renderBeauty(); await loadWorldbookMgr(); renderWb(); showToast('已刷新'); });
 
 manualWbApply.addEventListener('click', () => {
   const name = manualWbSelect.value;
@@ -2463,7 +2086,6 @@ manualWbApply.addEventListener('click', () => {
   if (statusText) { statusText.textContent = name; statusText.style.color = '#4ade80'; }
   if (bubble) bubble.classList.remove('warn');
   showToast('已切换: ' + name);
-  autoSwitch();
 });
 
 mvuUpdateMode.addEventListener('change', () => {
@@ -2747,29 +2369,8 @@ checkConfig();
 // 每5秒自动检测一次配置（模型切换后呼吸灯自动跟上，无需打开面板）
 setInterval(() => { checkConfig(); updateBackendCode(); }, 5000);
 
-// 定时轮询 MVU 状态，变化时自动切换世界书
-let _lastStatKey = '';
-setInterval(() => {
-  try {
-    if (typeof p.Mvu === 'undefined') return;
-    const sd = readStatData();
-    if (!sd) return;
-    const key = `${sd.世界阶段}|${sd.衍生状态?.nationality}|${sd.感染者行为模式}|${sd.NPC行为模式}`;
-    if (key !== _lastStatKey) {
-      _lastStatKey = key;
-      autoSwitch();
-    }
-  } catch (e) {}
-}, 5000);
-
 refreshMvuConfigStatus();
 loadBeauty().then(renderBeauty).catch(() => {});
 loadWorldbookMgr().then(renderWb).catch(() => {});
-
-// 5. 启动时执行一次世界书切换
-autoSwitch();
-
-// 注册世界书状态刷新事件
-p.document.addEventListener('yl-done', () => { refreshUI(); checkWorldbookCount(); });
 
 } // end if (!p._ylLoaded)
