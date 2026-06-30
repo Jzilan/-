@@ -3,7 +3,7 @@
 //   import 'https://testingcf.jsdelivr.net/gh/NLKASHEI/233456@v1.1.2/异录配置小助手.min.js'
 // ═══════════════════════════════════════════════════════════
 
-const YL_VERSION = '1.1.0';
+const YL_VERSION = '1.0.1';
 const WORLDBOOK_NAME = '我是S级求打压';
 const p = window.parent || window;
 
@@ -497,8 +497,8 @@ p.document.body.insertAdjacentHTML('beforeend', `
       <button class="yl-tab active" data-screen="home">状态</button>
       <button class="yl-tab" data-screen="mvu">MVU</button>
       <button class="yl-tab" data-screen="worldbook">世界书</button>
-      <button class="yl-tab" data-screen="beauty">美化</button>
       <button class="yl-tab" data-screen="plot">剧情</button>
+      <button class="yl-tab" data-screen="beauty">美化</button>
       <button class="yl-tab" data-screen="about">关于</button>
     </div>
     <div class="yl-body">
@@ -699,8 +699,8 @@ p.document.body.insertAdjacentHTML('beforeend', `
         自动读取 <code style="color:#a855f7;">stat_data.剧情线</code>，按阶段值开关 10 条长线剧情的正剧条目（阶段≥1 开启，未触发关闭）。与剧情条目内的 EJS 形成双保险。
       </div>
       <button id="yl-plot-sync" style="width:100%;margin-bottom:10px;padding:10px;border-radius:8px;border:1px solid rgba(34,211,238,.4);background:linear-gradient(135deg,rgba(34,211,238,.16),rgba(168,85,247,.16));color:#eaf6ff;font-size:13px;cursor:pointer;font-family:inherit;">🔄 立即同步剧情状态</button>
-      <div id="yl-plot-status" style="font-size:12px;color:#8fb4d6;line-height:1.9;white-space:pre-line;min-height:80px;padding:10px 12px;border-radius:8px;background:rgba(7,10,22,.4);border:1px solid rgba(99,179,237,.12);">等待同步…</div>
-      <div style="font-size:11px;color:#5f7e96;margin-top:8px;line-height:1.6;">每 25 秒自动同步一次。正剧条目默认关闭，当 AI 在 &lt;UpdateVariable&gt; 中推进剧情变量后，对应正剧条目会自动开启。</div>
+      <div id="yl-plot-list" style="min-height:80px;">等待同步…</div>
+      <div style="font-size:11px;color:#5f7e96;margin-top:8px;line-height:1.6;">每 25 秒自动同步一次。正剧默认关闭，AI 在 &lt;UpdateVariable&gt; 中推进剧情变量后会自动开启；也可用每条右侧按钮手动开关（手动开关不会改剧情阶段变量）。</div>
       </div><!-- /screen plot -->
       <div class="yl-screen" data-screen="about">
       <div style="text-align:center;padding:18px 16px;">
@@ -1814,8 +1814,9 @@ function renderWb() {
     wbListEl.innerHTML = list.map(it => {
       const name = it.name || it.comment || ('#' + it.uid);
       return '<label style="display:flex;align-items:center;gap:5px;font-size:11px;color:#8fb4d6;cursor:pointer;padding:2px 4px;border-radius:4px;">'
-        + '<input type="checkbox" data-uid="' + it.uid + '"' + (it.enabled ? ' checked' : '') + ' style="accent-color:#a855f7;margin:0;">'
+        + '<input type="checkbox" data-uid="' + it.uid + '"' + (it.enabled ? ' checked' : '') + ' style="accent-color:#a855f7;margin:0;flex:none;">'
         + '<span style="flex:1;word-break:break-all;">' + _esc2(name) + '</span>'
+        + '<span data-view-uid="' + it.uid + '" title="查看详情" style="color:#22d3ee;cursor:pointer;font-size:12px;padding:0 4px;flex:none;">📖</span>'
         + '</label>';
     }).join('');
   }
@@ -1830,6 +1831,35 @@ wbListEl.addEventListener('change', (e) => {
     if (it) { it.enabled = cb.checked; _wbDirty = true; renderWb(); }
   }
 });
+wbListEl.addEventListener('click', (e) => {
+  const v = e.target.closest('[data-view-uid]');
+  if (v) { e.preventDefault(); e.stopPropagation(); ylViewEntry(Number(v.dataset.viewUid)); }
+});
+function ylViewEntry(uid) {
+  const it = _wbEntries.find(x => x.uid === uid);
+  if (!it) return;
+  const name = it.name || it.comment || ('#' + uid);
+  const content = it.content || '(空)';
+  let m = p.document.getElementById('yl-entry-modal');
+  if (!m) {
+    m = p.document.createElement('div');
+    m.id = 'yl-entry-modal';
+    m.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100dvh;background:rgba(0,0,0,.72);z-index:2147483647;display:none;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;';
+    m.innerHTML = '<div style="background:#0d1426;border:1px solid rgba(34,211,238,.4);border-radius:12px;max-width:560px;width:100%;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.6);">'
+      + '<div style="padding:12px 16px;border-bottom:1px solid rgba(99,179,237,.18);display:flex;justify-content:space-between;align-items:center;gap:10px;">'
+      + '<div id="yl-entry-title" style="color:#eaf6ff;font-size:13px;font-weight:bold;word-break:break-all;flex:1;"></div>'
+      + '<button id="yl-entry-close" style="background:transparent;border:none;color:#8fb4d6;cursor:pointer;font-size:20px;padding:0 4px;flex:none;line-height:1;">×</button>'
+      + '</div>'
+      + '<div id="yl-entry-body" style="padding:12px 16px;overflow-y:auto;font-size:12px;color:#cfe9ff;line-height:1.7;white-space:pre-wrap;word-break:break-word;"></div>'
+      + '</div>';
+    p.document.body.appendChild(m);
+    const close = () => { m.style.display = 'none'; };
+    m.addEventListener('click', (ev) => { if (ev.target === m || ev.target.id === 'yl-entry-close') close(); });
+  }
+  p.document.getElementById('yl-entry-title').textContent = name + (it.enabled ? '' : '  〔已禁用〕');
+  p.document.getElementById('yl-entry-body').textContent = content;
+  m.style.display = 'flex';
+}
 wbKwEl.addEventListener('input', (e) => { _wbKw = e.target.value; renderWb(); });
 wbOnBtn.addEventListener('click', () => {
   const uids = new Set(_wbFiltered().map(x => x.uid));
@@ -2437,6 +2467,7 @@ window.addEventListener('beforeunload', ylDoCleanup); // 兜底：部分环境 p
     let _ylPlotById = null;
     let _ylPlotTimer = null;
     let _ylPlotBusy = false;
+    let _ylPlotStages = {};
 
     // 读取 stat_data.剧情线（多路兜底，失败返回 {}）
     async function ylGetPlotStages() {
@@ -2474,6 +2505,7 @@ window.addEventListener('beforeunload', ylDoCleanup); // 兜底：部分环境 p
           (entries || []).forEach(function (e) { _ylPlotById[String(e.uid)] = e; });
         }
         const stages = await ylGetPlotStages();
+        _ylPlotStages = stages || {};
         const patch = {};
         Object.keys(YL_PLOT_MAP).forEach(function (key) {
           const uid = YL_PLOT_MAP[key];
@@ -2504,10 +2536,54 @@ window.addEventListener('beforeunload', ylDoCleanup); // 兜底：部分环境 p
       }
     }
 
-    // 渲染状态到剧情 tab 的状态区（若已渲染）
-    function ylRenderStatus(lines) {
-      const box = p.document.getElementById('yl-plot-status');
-      if (box && lines) box.textContent = lines.join('\n');
+    // 渲染 10 条剧情列表（含阶段 + 手动开关）到剧情 tab
+    function ylRenderPlots() {
+      const box = p.document.getElementById('yl-plot-list');
+      if (!box) return;
+      if (!_ylPlotById) { box.innerHTML = '<div style="font-size:11px;color:#5f7e96;text-align:center;padding:10px;">正在加载剧情条目…</div>'; return; }
+      box.innerHTML = Object.keys(YL_PLOT_MAP).map(function (key) {
+        const uid = YL_PLOT_MAP[key];
+        const stage = Number(_ylPlotStages[key]) || 0;
+        const entry = _ylPlotById[String(uid)];
+        const en = !!(entry && entry.enabled);
+        const stageTxt = stage > 0 ? ('阶段' + stage) : '未触发';
+        const sub = stage > 0 ? (en ? ' · 正剧已开启' : ' · 正剧待开启') : ' · 仅伏笔';
+        return '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:6px;border-radius:8px;background:rgba(7,10,22,.4);border:1px solid ' + (en ? 'rgba(34,211,238,.4)' : 'rgba(99,179,237,.12)') + ';">'
+          + '<div style="flex:1;min-width:0;">'
+          + '<div style="font-size:12px;color:#eaf6ff;font-weight:bold;word-break:break-all;">' + key + '</div>'
+          + '<div style="font-size:10px;color:' + (stage > 0 ? '#22d3ee' : '#5f7e96') + ';margin-top:2px;">' + stageTxt + sub + '</div>'
+          + '</div>'
+          + '<button data-plot-toggle="' + uid + '" style="padding:5px 12px;border-radius:6px;border:1px solid ' + (en ? 'rgba(168,85,247,.5)' : 'rgba(34,211,238,.5)') + ';background:' + (en ? 'rgba(168,85,247,.18)' : 'rgba(34,211,238,.18)') + ';color:#eaf6ff;cursor:pointer;font-size:11px;font-family:inherit;flex:none;">' + (en ? '关闭' : '开启') + '</button>'
+          + '</div>';
+      }).join('');
+    }
+    // 手动开关（事件委托；幂等）
+    function ylBindPlotToggle() {
+      const box = p.document.getElementById('yl-plot-list');
+      if (box && !box._ylToggleBound) {
+        box._ylToggleBound = true;
+        box.addEventListener('click', async function (ev) {
+          const b = ev.target.closest('[data-plot-toggle]');
+          if (!b) return;
+          const uid = Number(b.dataset.plotToggle);
+          const entry = _ylPlotById && _ylPlotById[String(uid)];
+          if (!entry) return;
+          const next = !entry.enabled;
+          b.textContent = '…';
+          try {
+            const wbName = await api_resolveWorldbookName();
+            const patch = {}; patch[String(uid)] = next;
+            const pj = JSON.stringify(patch);
+            await api_replaceWorldbook(wbName, 'function(es){ var p=' + pj + '; es.forEach(function(e){ if(p[String(e.uid)]!==undefined) e.enabled=p[String(e.uid)]; }); }');
+            entry.enabled = next;
+            ylRenderPlots();
+            showToast('正剧条目 #' + uid + (next ? ' 已手动开启' : ' 已手动关闭'));
+          } catch (e) {
+            b.textContent = next ? '开启' : '关闭';
+            showToast('操作失败：' + (e.message || e));
+          }
+        });
+      }
     }
     // 绑定剧情 tab 的同步按钮（面板就绪后；幂等）
     function ylBindSyncBtn() {
@@ -2518,16 +2594,17 @@ window.addEventListener('beforeunload', ylDoCleanup); // 兜底：部分环境 p
           btn.textContent = '同步中…';
           const r = await ylSyncPlots(false);
           btn.textContent = '🔄 立即同步剧情状态';
-          if (r && r.ok) ylRenderStatus(r.lines);
-          else if (r) ylRenderStatus(['同步失败：' + r.reason]);
+          if (r && r.ok) ylRenderPlots();
+          else if (r) showToast('同步失败：' + r.reason);
         });
       }
     }
-    // 一拍：绑定按钮 + 同步 + 刷新状态区
+    // 一拍：绑定按钮/开关 + 同步 + 刷新列表
     function ylTick(silent) {
       try {
         ylBindSyncBtn();
-        ylSyncPlots(silent).then(function (r) { if (r && r.ok) ylRenderStatus(r.lines); });
+        ylBindPlotToggle();
+        ylSyncPlots(silent).then(function (r) { if (r && r.ok) ylRenderPlots(); });
       } catch (e) {}
     }
     _ylPlotTimer = setInterval(function () { ylTick(true); }, 25000);
