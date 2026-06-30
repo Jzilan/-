@@ -3,7 +3,7 @@
 //   import 'https://testingcf.jsdelivr.net/gh/NLKASHEI/233456@v1.1.2/异录配置小助手.min.js'
 // ═══════════════════════════════════════════════════════════
 
-const YL_VERSION = '1.0.0';
+const YL_VERSION = '1.1.0';
 const WORLDBOOK_NAME = '我是S级求打压';
 const p = window.parent || window;
 
@@ -498,6 +498,7 @@ p.document.body.insertAdjacentHTML('beforeend', `
       <button class="yl-tab" data-screen="mvu">MVU</button>
       <button class="yl-tab" data-screen="worldbook">世界书</button>
       <button class="yl-tab" data-screen="beauty">美化</button>
+      <button class="yl-tab" data-screen="plot">剧情</button>
       <button class="yl-tab" data-screen="about">关于</button>
     </div>
     <div class="yl-body">
@@ -692,6 +693,15 @@ p.document.body.insertAdjacentHTML('beforeend', `
         <div id="yl-mvu-status" style="font-size:11px;color:#8fb4d6;margin-top:6px;text-align:center;line-height:1.6;"></div>
       </div>
       </div><!-- /screen mvu -->
+      <div class="yl-screen" data-screen="plot">
+      <div style="font-size:12px;color:#8fb4d6;line-height:1.7;margin-bottom:12px;padding:10px 12px;border-radius:8px;background:rgba(34,211,238,.06);border:1px solid rgba(34,211,238,.18);">
+        <b style="color:#cfe9ff;">🎭 剧情引擎</b><br>
+        自动读取 <code style="color:#a855f7;">stat_data.剧情线</code>，按阶段值开关 10 条长线剧情的正剧条目（阶段≥1 开启，未触发关闭）。与剧情条目内的 EJS 形成双保险。
+      </div>
+      <button id="yl-plot-sync" style="width:100%;margin-bottom:10px;padding:10px;border-radius:8px;border:1px solid rgba(34,211,238,.4);background:linear-gradient(135deg,rgba(34,211,238,.16),rgba(168,85,247,.16));color:#eaf6ff;font-size:13px;cursor:pointer;font-family:inherit;">🔄 立即同步剧情状态</button>
+      <div id="yl-plot-status" style="font-size:12px;color:#8fb4d6;line-height:1.9;white-space:pre-line;min-height:80px;padding:10px 12px;border-radius:8px;background:rgba(7,10,22,.4);border:1px solid rgba(99,179,237,.12);">等待同步…</div>
+      <div style="font-size:11px;color:#5f7e96;margin-top:8px;line-height:1.6;">每 25 秒自动同步一次。正剧条目默认关闭，当 AI 在 &lt;UpdateVariable&gt; 中推进剧情变量后，对应正剧条目会自动开启。</div>
+      </div><!-- /screen plot -->
       <div class="yl-screen" data-screen="about">
       <div style="text-align:center;padding:18px 16px;">
         <div style="font-size:34px;line-height:1;margin-bottom:10px;filter:drop-shadow(0 0 10px rgba(34,211,238,.5));">
@@ -2420,9 +2430,9 @@ window.addEventListener('beforeunload', ylDoCleanup); // 兜底：部分环境 p
   try {
     // 剧情键 → 正剧条目 id（与角色卡内 id 一致）
     const YL_PLOT_MAP = {
-      '兽潮危机': 700020, 'S级身世': 700021, '混血圣子': 700022,
-      '旧时代真相': 700023, '魔女低语': 700024, '晶核黑市': 700025,
-      '学府暗流': 700026, '听风之眼': 700027, '秘境契约': 700028, '堕落深渊': 700029
+      '兽潮危机': 700020, '旧时代真相': 700021, '魔女低语': 700022,
+      '听风之眼': 700023, '秘境契约': 700024, '校园情缘': 700025,
+      '社团物语': 700026, '学园祭典': 700027, '室友奇谈': 700028, '暗恋心声': 700029
     };
     let _ylPlotById = null;
     let _ylPlotTimer = null;
@@ -2494,37 +2504,41 @@ window.addEventListener('beforeunload', ylDoCleanup); // 兜底：部分环境 p
       }
     }
 
-    // 独立状态按钮（不改动原面板结构）
-    const plotBtn = p.document.createElement('div');
-    plotBtn.id = 'yl-plot-btn';
-    plotBtn.textContent = '剧';
-    plotBtn.title = '异录·剧情引擎（点击同步/查看 10 条剧情状态）';
-    plotBtn.style.cssText = 'position:fixed;right:16px;bottom:84px;width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#7e57c2,#5e35b1);color:#fff;font-size:15px;font-weight:bold;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2147483000;box-shadow:0 2px 8px rgba(0,0,0,.4);user-select:none;font-family:sans-serif;';
-    plotBtn.addEventListener('click', async function () {
-      plotBtn.style.opacity = '0.5';
-      const r = await ylSyncPlots(false);
-      plotBtn.style.opacity = '1';
-      if (r && r.ok) {
-        alert('【异录·剧情引擎】本次变更 ' + r.changed + ' 条\n\n' + r.lines.join('\n') + '\n\n触发方式：剧情变量 stat_data.剧情线.<键> 由 AI 在 <UpdateVariable> 中推进，阶段≥1 自动开启正剧条目。');
-      } else if (r) {
-        alert('【异录·剧情引擎】同步失败：\n' + r.reason);
+    // 渲染状态到剧情 tab 的状态区（若已渲染）
+    function ylRenderStatus(lines) {
+      const box = p.document.getElementById('yl-plot-status');
+      if (box && lines) box.textContent = lines.join('\n');
+    }
+    // 绑定剧情 tab 的同步按钮（面板就绪后；幂等）
+    function ylBindSyncBtn() {
+      const btn = p.document.getElementById('yl-plot-sync');
+      if (btn && !btn._ylBound) {
+        btn._ylBound = true;
+        btn.addEventListener('click', async function () {
+          btn.textContent = '同步中…';
+          const r = await ylSyncPlots(false);
+          btn.textContent = '🔄 立即同步剧情状态';
+          if (r && r.ok) ylRenderStatus(r.lines);
+          else if (r) ylRenderStatus(['同步失败：' + r.reason]);
+        });
       }
-    });
-    p.document.body.appendChild(plotBtn);
+    }
+    // 一拍：绑定按钮 + 同步 + 刷新状态区
+    function ylTick(silent) {
+      try {
+        ylBindSyncBtn();
+        ylSyncPlots(silent).then(function (r) { if (r && r.ok) ylRenderStatus(r.lines); });
+      } catch (e) {}
+    }
+    _ylPlotTimer = setInterval(function () { ylTick(true); }, 25000);
 
-    // 定时自动同步（25 秒，静默，仅变化时写世界书）
-    _ylPlotTimer = setInterval(function () { try { ylSyncPlots(true); } catch (e) {} }, 25000);
-
-    // 卸载清理（自注册，不碰 ylDoCleanup）
     p._ylPlotCleanup = function () {
       try { if (_ylPlotTimer) clearInterval(_ylPlotTimer); _ylPlotTimer = null; } catch (e) {}
-      try { var el = p.document.getElementById('yl-plot-btn'); if (el && el.parentNode) el.parentNode.removeChild(el); } catch (e) {}
       try { delete p._ylPlotCleanup; } catch (e) {}
     };
     window.addEventListener('pagehide', function () { try { if (p._ylPlotCleanup) p._ylPlotCleanup(); } catch (e) {} });
 
-    // 首次延迟同步（等世界书就绪）
-    setTimeout(function () { try { ylSyncPlots(true); } catch (e) {} }, 3000);
+    setTimeout(function () { ylTick(true); }, 3000);
     console.log('[异录] 剧情引擎已加载，监控 10 条长线剧情。');
   } catch (e) {
     try { console.warn('[异录] 剧情引擎初始化失败:', e); } catch (_e) {}
