@@ -1717,10 +1717,53 @@ function _esc2(s) {
 // 美化系列定义: test 判定该正则是否属于本系列
 const BEAUTY_SERIES = [
   { key: 'origin',   label: '原版 · 欢迎/档案', icon: '📜', test: (n) => n.includes('欢迎来到异录') || n.includes('已录入异录档案') },
-  { key: 'nightsky', label: '夜空诗意',         icon: '🌙', test: (n) => n.includes('夜空诗意') },
+  { key: 'techflow', label: '流光科技',         icon: '⚡', test: (n) => n.includes('流光科技') },
   { key: 'crystal',  label: '异兽晶核',         icon: '◈',  test: (n) => n.includes('异兽晶核') },
   { key: 'awaken',   label: '异能觉醒',         icon: '⚡', test: (n) => n.includes('异能觉醒') },
 ];
+
+// ── 流光科技美化（现代科技风 + 流光边框/扫光，小助手自带，首次加载自动注入到角色正则）──
+const _FIND_U = '/<UpdateVariable(?:variable)?>(?!.*<\\/UpdateVariable(?:variable)?>)\\s*(.*)\\s*$/gsi';
+const _FIND_C = '/<UpdateVariable(?:variable)?>\\s*(.*)\\s*<\\/UpdateVariable(?:variable)?>/gsi';
+const _REPL_U = `<div style="width:80%;margin:20px auto;"><details class="techflow-thinking" style="background:linear-gradient(135deg,#0a0e27,#0d1b2a,#0a0e27);border:1px solid rgba(0,229,255,.35);border-radius:12px;box-shadow:0 0 22px rgba(0,229,255,.18),inset 0 1px 0 rgba(0,229,255,.12);overflow:hidden;position:relative;"><summary style="padding:14px 22px;color:#7df9ff;cursor:pointer;list-style:none;font-weight:600;display:flex;align-items:center;gap:10px;position:relative;z-index:2;font-family:'Segoe UI',sans-serif;letter-spacing:1px;"><span style="font-size:1.2em;filter:drop-shadow(0 0 8px rgba(0,229,255,.85));animation:tf-pulse 1.4s ease-in-out infinite;">⏳</span><span style="flex:1;">DATA STREAM · 数据流解析中</span><span style="font-size:.78em;opacity:.65;font-family:monospace;">[ PROCESSING ]</span><span style="position:absolute;top:0;left:0;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(0,229,255,.2),transparent);animation:tf-sweep 2s linear infinite;pointer-events:none;"></span></summary><div style="max-height:320px;overflow-y:auto;padding:12px 22px;color:#a0d8ef;line-height:1.7;white-space:pre-wrap;background:rgba(0,229,255,.04);font-family:Consolas,monospace;font-size:.95em;border-top:1px solid rgba(0,229,255,.18);">
+$1
+</div></details></div>
+<style>.techflow-thinking{position:relative;}.techflow-thinking::before{content:'';position:absolute;inset:0;border-radius:12px;padding:1px;background:linear-gradient(90deg,transparent,rgba(0,229,255,.7),transparent,rgba(168,85,247,.6),transparent);background-size:300% 100%;animation:tf-border 3s linear infinite;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;}.techflow-thinking::-webkit-scrollbar{width:6px;}.techflow-thinking::-webkit-scrollbar-track{background:#0a0e27;}.techflow-thinking::-webkit-scrollbar-thumb{background:rgba(0,229,255,.3);border-radius:3px;}.techflow-thinking[open]{box-shadow:0 0 32px rgba(0,229,255,.28),inset 0 1px 0 rgba(0,229,255,.18)!important;}.techflow-thinking summary::marker{display:none;}.techflow-thinking summary:hover{background:rgba(0,229,255,.06);}@keyframes tf-sweep{0%{transform:translateX(-100%);}100%{transform:translateX(100%);}}@keyframes tf-border{0%{background-position:0% 0%;}100%{background-position:300% 0%;}}@keyframes tf-pulse{0%,100%{opacity:1;filter:drop-shadow(0 0 8px rgba(0,229,255,.85));}50%{opacity:.55;filter:drop-shadow(0 0 14px rgba(0,229,255,1));}}</style>`;
+const _REPL_C = `<div style="width:80%;margin:20px auto;"><details class="techflow-complete" style="background:linear-gradient(135deg,#0a0e27,#0d2a1b,#0a0e27);border:1px solid rgba(0,255,157,.38);border-radius:12px;box-shadow:0 0 26px rgba(0,255,157,.2),inset 0 1px 0 rgba(0,255,157,.12);overflow:hidden;position:relative;"><summary style="padding:14px 22px;color:#7dff9f;cursor:pointer;list-style:none;font-weight:600;display:flex;align-items:center;gap:10px;position:relative;z-index:2;font-family:'Segoe UI',sans-serif;letter-spacing:1px;"><span style="font-size:1.2em;filter:drop-shadow(0 0 10px rgba(0,255,157,.9));">✓</span><span style="flex:1;">SYNC COMPLETE · 同步完成</span><span style="font-size:.78em;opacity:.7;font-family:monospace;color:#5fffaa;">[ OK ]</span><span style="position:absolute;top:0;left:0;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(0,255,157,.22),transparent);animation:tf-sweep 2.5s linear infinite;pointer-events:none;"></span></summary><div style="max-height:320px;overflow-y:auto;padding:12px 22px;color:#a0efc0;line-height:1.7;white-space:pre-wrap;background:rgba(0,255,157,.04);font-family:Consolas,monospace;font-size:.95em;border-top:1px solid rgba(0,255,157,.18);">
+$1
+</div></details></div>
+<style>.techflow-complete{position:relative;}.techflow-complete::before{content:'';position:absolute;inset:0;border-radius:12px;padding:1px;background:linear-gradient(90deg,transparent,rgba(0,255,157,.7),transparent,rgba(0,229,255,.5),transparent);background-size:300% 100%;animation:tf-border 3.5s linear infinite;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;}.techflow-complete::-webkit-scrollbar{width:6px;}.techflow-complete::-webkit-scrollbar-track{background:#0a0e27;}.techflow-complete::-webkit-scrollbar-thumb{background:rgba(0,255,157,.3);border-radius:3px;}.techflow-complete[open]{box-shadow:0 0 38px rgba(0,255,157,.3),inset 0 1px 0 rgba(0,255,157,.18)!important;}.techflow-complete summary::marker{display:none;}.techflow-complete summary:hover{background:rgba(0,255,157,.06);}@keyframes tf-sweep{0%{transform:translateX(-100%);}100%{transform:translateX(100%);}}@keyframes tf-border{0%{background-position:0% 0%;}100%{background-position:300% 0%;}}</style>`;
+function _ylMakeRegexObj(id, name, find, repl) {
+  return {
+    id: id, script_name: name, scriptName: name,
+    find_regex: find, findRegex: find, replace_string: repl, replaceString: repl,
+    disabled: true, placement: [2], markdown_only: true, markdownOnly: true,
+    prompt_only: false, promptOnly: false, run_on_edit: false, runOnEdit: false,
+    substitute_regex: 0, substituteRegex: 0, trim_strings: [], trimStrings: [],
+    min_depth: null, minDepth: null, max_depth: null, maxDepth: null
+  };
+}
+const YL_TECHFLOW_REGEX = [
+  _ylMakeRegexObj('a10a1001-0001-4000-8000-000000000001', '[美化]变量更新中-流光科技', _FIND_U, _REPL_U),
+  _ylMakeRegexObj('a10a1002-0002-4000-8000-000000000002', '[美化]完整变量完成-流光科技', _FIND_C, _REPL_C),
+];
+let _ylTechflowTried = false;
+async function ensureTechflowInjected() {
+  if (_ylTechflowTried) return;
+  _ylTechflowTried = true;
+  try {
+    const all = await api_getTavernRegexes() || [];
+    const has = all.some(r => (r.script_name || r.scriptName || '').includes('流光科技'));
+    const nightskyIds = all.filter(r => /夜空诗意/.test(r.script_name || r.scriptName || '')).map(r => r.id);
+    const disJson = JSON.stringify(nightskyIds);
+    if (!has) {
+      const pushJson = JSON.stringify(YL_TECHFLOW_REGEX);
+      await api_updateTavernRegexes('function(rs){ try{ rs.push.apply(rs, ' + pushJson + '); }catch(e){} var dis=' + disJson + '; rs.forEach(function(x){ if(dis.indexOf(x.id)>=0) x.enabled=false; }); return rs; }');
+    } else if (nightskyIds.length) {
+      await api_updateTavernRegexes('function(rs){ var dis=' + disJson + '; rs.forEach(function(x){ if(dis.indexOf(x.id)>=0) x.enabled=false; }); return rs; }');
+    }
+  } catch (e) {}
+}
 // 角色: u=变量更新中, c=完整/完成
 function _beautyRole(name) {
   if (/变量更新中/.test(name)) return 'u';
@@ -1728,15 +1771,17 @@ function _beautyRole(name) {
   return null;
 }
 function _seriesRegexes(s) {
-  const u = _beautyCache.find(r => s.test(r.script_name) && _beautyRole(r.script_name) === 'u');
-  const c = _beautyCache.find(r => s.test(r.script_name) && _beautyRole(r.script_name) === 'c');
+  const nm = (r) => r.script_name || r.scriptName || '';
+  const u = _beautyCache.find(r => s.test(nm(r)) && _beautyRole(nm(r)) === 'u');
+  const c = _beautyCache.find(r => s.test(nm(r)) && _beautyRole(nm(r)) === 'c');
   return { u, c };
 }
 async function loadBeauty() {
   try {
+    await ensureTechflowInjected();
     const all = await api_getTavernRegexes();
     _beautyCache = (all || []).filter(r => {
-      const n = r.script_name || '';
+      const n = r.script_name || r.scriptName || '';
       return BEAUTY_SERIES.some(s => s.test(n));
     });
   } catch (e) { _beautyCache = []; }
