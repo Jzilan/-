@@ -799,9 +799,9 @@ function showToast(msg) {
 
 
 // --- 配置检测：检查模型名称 ---
-const CONFIG_BLACKLIST = ['次','血','特','惠','福','利','鹿','量','plus','Plus','PLUS','转','官','0','auto','AUTO','Auto','+','逆'];
-const CONFIG_URL_WHITELIST = ['siliconflow', 'openrouter', 'ark.cn', 'edgefn', 'qnaigc', 'nvidia', 'baidubce', 'ananbdhdh', 'ai21', 'aimlapi', 'anthropic', 'bigmodel', 'chutes', 'cohere', 'cometapi', 'dashscope', 'deepseek', 'electronhub', 'fireworks', 'googleapis', 'groq', 'lingyiwanwu', 'minimax', 'mistral', 'moonshot', 'nanogpt', 'novita', 'openai', 'perplexity', 'pollinations', 'stepfun', 'together', 'x.ai', 'z.ai'];
-const CONFIG_URL_BLACKLIST = ['gemai','sta1n','chr1','iisbo','xqiqix','chatnewai','qingjiu','lemonapi','novaiapi','vectorengine','api.gpt.ge','sllt','beijixingxing','qinyan','jiemomo','meow61','aiopus','api-666','ekan8','nova.cervus'];
+const CONFIG_BLACKLIST = ['次','血','特','惠','福','利','鹿','量','plus','Plus','PLUS','转','官','0.','auto','AUTO','Auto','+','逆'];
+const CONFIG_URL_WHITELIST = ['siliconflow', 'openrouter', 'ark.cn-beijing.volces', 'ark.cn', 'edgefn', 'qnaigc', 'nvidia', 'baidubce', 'ananbdhdh', 'ai21', 'aimlapi', 'anthropic', 'bigmodel', 'chutes', 'cohere', 'cometapi', 'dashscope', 'deepseek', 'electronhub', 'fireworks', 'googleapis', 'groq', 'lingyiwanwu', 'magicv4', 'minimax', 'mistral', 'momotale', 'moonshot', 'moyii', 'nanogpt', 'novita', 'opencode', 'openai', 'api.pioneer.ai', 'perplexity', 'pollinations', 'primavera64', 'stepfun', 'together', 'x.ai', 'z.ai'];
+const CONFIG_URL_BLACKLIST = ['gemai','sta1n','chr1','iisbo','xqiqix','chatnewai','qingjiu','lemonapi','novaiapi','vectorengine','api.gpt.ge','sllt','beijixingxing','qinyan','jiemomo','meow61','aiopus','api-666','ekan8','nova.cervus','api.laozhang'];
 
 function checkConfig() {
   try {
@@ -1587,7 +1587,10 @@ function makeFakeCompletion(init) {
 
 // ── Fetch 劫持：黑名单命中时返回伪造的空 OpenAI 响应 ──
 function ewcInjectFetchHook() {
-  const _origFetch = p.fetch.bind(p);
+  if (p._ylFetchHooked) return;                 // 防止重复劫持（重载/多实例时）
+  p._ylFetchHooked = true;
+  p._ylOrigFetch = p.fetch.bind(p);             // 保存父页面原始 fetch，供 iframe 卸载时还原
+  const _origFetch = p._ylOrigFetch;
   p.fetch = function(input, init) {
     try {
       const url = typeof input === 'string' ? input : (input?.url || '');
@@ -2367,10 +2370,46 @@ ewcSyncMvuDom().catch(() => {});
 _ylPopulateWbSelect();
 checkConfig();
 // 每5秒自动检测一次配置（模型切换后呼吸灯自动跟上，无需打开面板）
-setInterval(() => { checkConfig(); updateBackendCode(); }, 5000);
+p._ylCheckInterval = setInterval(() => { checkConfig(); updateBackendCode(); }, 5000);
 
 refreshMvuConfigStatus();
 loadBeauty().then(renderBeauty).catch(() => {});
 loadWorldbookMgr().then(renderWb).catch(() => {});
+
+// ── 卸载清理：监听 iframe 自身的卸载事件（pagehide），回滚对父页面的一切修改 ──
+// 解决：消息 iframe 被移除/重新生成时，父页面的 fetch 劫持、悬浮窗、监听器与 _ylLoaded 标志泄漏，
+// 导致助手不再加载或持续拦截请求。此处在 iframe 卸载时统一还原。
+function ylDoCleanup() {
+  // 1. 还原父页面 fetch（最关键：否则卸载后仍在拦截聊天请求）
+  try { if (p._ylOrigFetch) { p.fetch = p._ylOrigFetch; } } catch (e) {}
+  // 2. 清除自动检测定时器
+  try { if (p._ylCheckInterval) { clearInterval(p._ylCheckInterval); p._ylCheckInterval = null; } } catch (e) {}
+  // 3. 移除挂到父页面 document 上的拖拽监听（命名函数，可精确移除）
+  try {
+    p.document.removeEventListener('mousemove', onBubbleMove);
+    p.document.removeEventListener('touchmove', onBubbleMove, { passive: false });
+    p.document.removeEventListener('mouseup', onBubbleEnd);
+    p.document.removeEventListener('touchend', onBubbleEnd);
+    p.document.removeEventListener('mousemove', onPanelMove);
+    p.document.removeEventListener('touchmove', onPanelMove, { passive: false });
+    p.document.removeEventListener('mouseup', onPanelEnd);
+    p.document.removeEventListener('touchend', onPanelEnd);
+  } catch (e) {}
+  // 4. 移除注入到父页面的 DOM（悬浮窗/面板 + 三段样式）
+  try {
+    ['yl-bubble', 'yl-panel'].forEach(function (id) { var el = p.document.getElementById(id); if (el && el.parentNode) el.parentNode.removeChild(el); });
+    [CSS, YL_NAV_CSS, MVU_CSS].forEach(function (st) { try { if (st && st.parentNode) st.parentNode.removeChild(st); } catch (e) {} });
+  } catch (e) {}
+  // 5. 重置加载标志，允许下一个 iframe 重新初始化助手
+  try {
+    p._ylFetchHooked = false;
+    delete p._ylOrigFetch;
+    p._ylLoaded = false;
+    delete p._ylCleanup;
+  } catch (e) {}
+}
+p._ylCleanup = ylDoCleanup;                        // 供重载时的旧清理逻辑（见文件顶部）调用，保持一致
+window.addEventListener('pagehide', ylDoCleanup);  // iframe 自身卸载时触发（消息被删除/重生成）
+window.addEventListener('beforeunload', ylDoCleanup); // 兜底：部分环境 pagehide 不可靠时同样清理
 
 } // end if (!p._ylLoaded)
